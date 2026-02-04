@@ -7,12 +7,13 @@
 <meta name="theme-color" content="#059669">
 <style>
   :root{
-    --g1:#047857; --g2:#059669; --g3:#10b981;
+    --g1:#047857; --g2:#059669;
     --txt:#0f172a; --muted:#475569; --white:#ffffff;
   }
   html,body{height:100%;}
   body{
-    margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+    margin:0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
     background: linear-gradient(180deg, var(--g1), var(--g2));
     color: var(--txt);
   }
@@ -28,10 +29,15 @@
   .tab{background:rgba(255,255,255,.12); color:#fff; border:none; padding:8px 12px; border-radius:999px; cursor:pointer;}
   .tab.active{background:rgba(255,255,255,.25); font-weight:600;}
   main{padding:24px 16px 48px; max-width:720px; margin:0 auto;}
-  .chips{display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none;}
+  .chips{display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none; align-items:center; flex-wrap:nowrap;}
   .chips::-webkit-scrollbar{display:none;}
   .chip{white-space:nowrap; background:rgba(255,255,255,.2); color:#fff; padding:8px 12px; border-radius:999px; border:none; cursor:pointer;}
   .chip.primary{background:#fff; color:#065f46; font-weight:600;}
+  .date-input{
+    background:#ffffff; color:#0f172a; border:1px solid #e2e8f0; border-radius:10px;
+    padding:8px 10px; font-size:14px;
+  }
+  .date-input::-webkit-calendar-picker-indicator{ cursor:pointer; }
   .card{
     background:#fff; border-radius:14px; box-shadow: 0 6px 18px rgba(0,0,0,.08);
     padding:16px; display:flex; flex-direction:column; gap:10px;
@@ -63,119 +69,187 @@
   textarea, input, select{
     width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:10px; padding:10px; font-size:14px;
   }
-  label{font-size:13px; color:#334155; font-weight:600; display:block; margin-bottom:6px;}
+  label{font-size:13px; color:#e7fff3; font-weight:600; display:block;}
   .empty{color:#fff; opacity:.95;}
+  .slot-pill{
+    display:inline-flex; font-size:12px; font-weight:700;
+    background:#e2e8f0; color:#0f172a; border-radius:999px; padding:4px 8px;
+  }
 </style>
 </head>
 <body>
-  <header>
-    <div class="container">
-      <h1>Cronograma de Aulas</h1>
-      <nav>
-        <button id="tabHoje" class="tab active">Aulas de hoje</button>
-        <button id="tabPlano" class="tab">Planejamento da semana</button>
-      </nav>
-    </div>
-  </header>
+<header>
+  <div class="container">
+    <h1>Cronograma de Aulas</h1>
+    <nav>
+      <button id="tabHoje" class="tab active">Aulas de hoje</button>
+      <button id="tabPlano" class="tab">Planejamento da semana</button>
+    </nav>
+  </div>
+</header>
 
-  <main>
-    <!-- Aulas de Hoje -->
-    <section id="viewHoje" class="view">
-      <div class="chips" id="chipsDias">
-        <button class="chip" data-dia="ontem">Ontem</button>
-        <button class="chip primary" data-dia="hoje">Hoje</button>
-        <button class="chip" data-dia="amanha">Amanhã</button>
-        <button class="chip" data-dia="1">Seg</button>
-        <button class="chip" data-dia="2">Ter</button>
-        <button class="chip" data-dia="3">Qua</button>
-        <button class="chip" data-dia="4">Qui</button>
-        <button class="chip" data-dia="5">Sex</button>
-      </div>
-      <div id="listaAulas" class="list" style="display:flex; flex-direction:column; gap:16px;"></div>
-    </section>
+<main>
+  <!-- Aulas de Hoje -->
+  <section id="viewHoje">
+    <div class="chips" id="chipsDias">
+      <button class="chip" data-dia="ontem">Ontem</button>
+      <button class="chip primary" data-dia="hoje">Hoje</button>
+      <button class="chip" data-dia="amanha">Amanhã</button>
+      <button class="chip" data-dia="1">Seg</button>
+      <button class="chip" data-dia="2">Ter</button>
+      <button class="chip" data-dia="3">Qua</button>
+      <button class="chip" data-dia="4">Qui</button>
+      <button class="chip" data-dia="5">Sex</button>
 
-    <!-- Planejamento da Semana -->
-    <section id="viewPlano" class="view" style="display:none;">
-      <div class="row">
-        <button id="btnPrev" class="btn light">◀︎</button>
-        <div id="lblSemana" class="box">Semana do dia --/--/----</div>
-        <button id="btnNext" class="btn light">▶︎</button>
+      <div style="display:flex; align-items:center; gap:8px; margin-left:8px;">
+        <label for="inputData" class="meta">Selecionar dia:</label>
+        <input id="inputData" type="date" class="date-input">
       </div>
-      <div id="gridPlano" class="list" style="margin-top:12px; display:flex; flex-direction:column; gap:12px;"></div>
-    </section>
-  </main>
+    </div>
+    <div id="listaAulas" style="display:flex; flex-direction:column; gap:16px;"></div>
+  </section>
 
-  <!-- Dialog: Registrar Ocorrência -->
-  <dialog id="dlgOcorrencia">
-    <div class="dlg-header">Registrar o que aconteceu</div>
-    <div class="dlg-body">
-      <div id="infoAula" class="meta" style="margin-bottom:8px;"></div>
-      <label for="txtOcorrencia">Observação</label>
-      <textarea id="txtOcorrencia" rows="6" placeholder="Descreva o ocorrido..." required></textarea>
+  <!-- Planejamento da Semana -->
+  <section id="viewPlano" style="display:none;">
+    <div class="row">
+      <button id="btnPrev" class="btn light">◀︎</button>
+      <div id="lblSemana" class="box">Semana do dia --/--/----</div>
+      <button id="btnNext" class="btn light">▶︎</button>
     </div>
-    <div class="dlg-foot">
-      <button class="btn outline" value="cancel">Cancelar</button>
-      <button id="btnSalvarOcorrencia" class="btn" value="default">Salvar</button>
-    </div>
-  </dialog>
+    <div id="gridPlano" style="margin-top:12px; display:flex; flex-direction:column; gap:12px;"></div>
+  </section>
+</main>
 
-  <!-- Dialog: Planejar Aula (criar/editar) -->
-  <dialog id="dlgPlano">
-    <div class="dlg-header" id="dlgPlanoTitle">Planejar aula</div>
-    <div class="dlg-body" style="display:grid; gap:12px;">
-      <input type="hidden" id="pl_id">
-      <div>
-        <label>Semana (2ª feira)</label>
-        <input id="semana_inicio" type="date" required>
+<!-- Dialog: Registrar Ocorrência -->
+<dialog id="dlgOcorrencia">
+  <div class="dlg-header">Registrar o que aconteceu</div>
+  <div class="dlg-body">
+    <div id="infoAula" class="meta" style="margin-bottom:8px;"></div>
+    <label for="txtOcorrencia" style="color:#334155;">Observação</label>
+    <textarea id="txtOcorrencia" rows="6" placeholder="Descreva o ocorrido..." required></textarea>
+  </div>
+  <div class="dlg-foot">
+    <button class="btn outline" onclick="document.getElementById('dlgOcorrencia').close()">Cancelar</button>
+    <button id="btnSalvarOcorrencia" class="btn">Salvar</button>
+  </div>
+</dialog>
+
+<!-- Dialog: Planejar Aula (criar/editar) -->
+<dialog id="dlgPlano">
+  <div class="dlg-header" id="dlgPlanoTitle">Planejar aula</div>
+  <div class="dlg-body" style="display:grid; gap:12px;">
+    <input type="hidden" id="pl_id">
+
+    <div>
+      <label>Semana (2ª feira)</label>
+      <input id="semana_inicio" type="date" required>
+    </div>
+
+    <div>
+      <label>Dia da semana</label>
+      <select id="dia_semana" required>
+        <option value="1">Segunda</option>
+        <option value="2">Terça</option>
+        <option value="3">Quarta</option>
+        <option value="4">Quinta</option>
+        <option value="5">Sexta</option>
+      </select>
+    </div>
+
+    <!-- NOVO: seletor de aula padrão (6 por dia) -->
+    <div>
+      <label>Aula padrão (6 aulas/dia)</label>
+      <select id="slot_padrao">
+        <option value="">(não usar)</option>
+        <option value="1">1ª aula (07:15–08:30)</option>
+        <option value="2">2ª aula (08:30–09:15)</option>
+        <option value="3">3ª aula (09:15–10:00)</option>
+        <option value="4">4ª aula (10:00–10:45)</option>
+        <option value="5">5ª aula (10:45–11:30)</option>
+        <option value="6">6ª aula (11:30–12:15)</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Turma ID</label>
+      <input id="turma_id" placeholder="Ex.: T1A" required>
+    </div>
+
+    <div>
+      <label>Sala ID</label>
+      <input id="sala_id" placeholder="Ex.: S101">
+    </div>
+
+    <div class="row" style="gap:10px;">
+      <div style="flex:1">
+        <label>Início</label>
+        <input id="inicio" type="time" required>
       </div>
-      <div>
-        <label>Dia da semana</label>
-        <select id="dia_semana" required>
-          <option value="1">Segunda</option>
-          <option value="2">Terça</option>
-          <option value="3">Quarta</option>
-          <option value="4">Quinta</option>
-          <option value="5">Sexta</option>
-        </select>
-      </div>
-      <div>
-        <label>Turma ID</label>
-        <input id="turma_id" placeholder="Ex.: T1A" required>
-      </div>
-      <div>
-        <label>Sala ID</label>
-        <input id="sala_id" placeholder="Ex.: S101">
-      </div>
-      <div class="row" style="gap:10px;">
-        <div style="flex:1">
-          <label>Início</label>
-          <input id="inicio" type="time" required>
-        </div>
-        <div style="flex:1">
-          <label>Fim</label>
-          <input id="fim" type="time" required>
-        </div>
-      </div>
-      <div>
-        <label>Descrição planejada</label>
-        <textarea id="descricao_planejada" rows="4" placeholder="Conteúdo/atividade planejada..."></textarea>
+      <div style="flex:1">
+        <label>Fim</label>
+        <input id="fim" type="time" required>
       </div>
     </div>
-    <div class="dlg-foot">
-      <button class="btn outline" value="cancel">Cancelar</button>
-      <button id="btnSalvarPlano" class="btn" value="default">Salvar</button>
+
+    <div>
+      <label>Descrição planejada</label>
+      <textarea id="descricao_planejada" rows="4" placeholder="Conteúdo/atividade planejada..."></textarea>
     </div>
-  </dialog>
+  </div>
+
+  <div class="dlg-foot">
+    <button class="btn outline" onclick="document.getElementById('dlgPlano').close()">Cancelar</button>
+    <button id="btnSalvarPlano" class="btn">Salvar</button>
+  </div>
+</dialog>
 
 <script>
 /*** CONFIG: COLE A URL DO SEU WEB APP AQUI ***/
-const API_URL = 'https://script.google.com/macros/s/AKfycbzuMaABf9OyjkXe4bg28Ph0X4t7u-QPESklKtrQ1GbLJnITctmmB87Q-rugHKUqEstb/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyn6R_sJpkF6diU_fSHZdRph6wmbln_FQ9OKcImbGYR9IwQAwDi1yH1si-iATw_8H03ww/exec';
 
-/*** Utilitários de data ***/
-const toYMD = (d)=>{ const z=new Date(d); z.setHours(0,0,0,0); const m=String(z.getMonth()+1).padStart(2,'0'); const day=String(z.getDate()).padStart(2,'0'); return `${z.getFullYear()}-${m}-${day}`; };
-const mondayOf = (d)=>{ const z=new Date(d); const dow=z.getDay(); const diff=(dow===0?-6:1-dow); z.setDate(z.getDate()+diff); z.setHours(0,0,0,0); return z; };
-const fmtBR = (ymd)=>{ if(!ymd) return '--/--/----'; const [y,m,d]=ymd.split('-'); return `${d}/${m}/${y}`; };
-const diaLabel = (n)=>['','Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'][Number(n)||0];
+/*** Slots padrão (6 aulas/dia) ***/
+const TIME_SLOTS = [
+  {n:1, inicio:'07:15', fim:'08:30'},
+  {n:2, inicio:'08:30', fim:'09:15'},
+  {n:3, inicio:'09:15', fim:'10:00'},
+  {n:4, inicio:'10:00', fim:'10:45'},
+  {n:5, inicio:'10:45', fim:'11:30'},
+  {n:6, inicio:'11:30', fim:'12:15'}
+];
+
+/*** Data local SEM UTC: "YYYY-MM-DD" => new Date(y,m-1,d) ***/
+function parseYMDLocal(ymd){
+  if(!ymd) return null;
+  const [y,m,d] = String(ymd).split('-').map(Number);
+  if(!y || !m || !d) return null;
+  const dt = new Date(y, m-1, d);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+
+const toYMD = (d)=>{
+  const z=new Date(d); z.setHours(0,0,0,0);
+  const m=String(z.getMonth()+1).padStart(2,'0');
+  const day=String(z.getDate()).padStart(2,'0');
+  return `${z.getFullYear()}-${m}-${day}`;
+};
+
+const mondayOf = (d)=>{
+  const z=new Date(d);
+  const dow=z.getDay();
+  const diff=(dow===0?-6:1-dow);
+  z.setDate(z.getDate()+diff);
+  z.setHours(0,0,0,0);
+  return z;
+};
+
+const fmtBR = (ymd)=>{
+  if(!ymd) return '--/--/----';
+  const [y,m,d]=ymd.split('-');
+  return `${d}/${m}/${y}`;
+};
+
+const diaLabel = (n)=>['','Segunda','Terça','Quarta','Quinta','Sexta'][Number(n)||0];
 
 /*** API ***/
 const api = {
@@ -243,13 +317,16 @@ async function carregarAulas(){
   OBS   = obs.observacoes || [];
   renderAulas();
 }
+
 function renderAulas(){
   const wrap = document.getElementById('listaAulas');
   wrap.innerHTML = '';
+
   if(!AULAS.length){
     wrap.innerHTML = `<div class="empty">Sem aulas para ${fmtBR(DATA_ATUAL)}.</div>`;
     return;
   }
+
   AULAS.forEach((a,idx)=>{
     const pend = OBS.filter(o=> String(o.turma_id)===String(a.turma_id));
     const pendHtml = pend.map(o=>`
@@ -257,6 +334,7 @@ function renderAulas(){
         <div class="txt">${o.texto}</div>
         <button class="btn link" data-consumir="${o.obs_id}">Marcar como visto</button>
       </div>`).join('');
+
     const card = document.createElement('article');
     card.className='card';
     card.innerHTML = `
@@ -275,7 +353,8 @@ function renderAulas(){
     `;
     wrap.appendChild(card);
   });
-  // Ações
+
+  // Registrar ocorrência
   document.querySelectorAll('[data-ocorrencia]').forEach(btn=>{
     btn.onclick = ()=>{
       const a = AULAS[Number(btn.dataset.ocorrencia)];
@@ -283,6 +362,7 @@ function renderAulas(){
         `${a.nome_turma} • ${a.inicio}–${a.fim} • ${fmtBR(DATA_ATUAL)}`;
       document.getElementById('txtOcorrencia').value = '';
       document.getElementById('dlgOcorrencia').showModal();
+
       document.getElementById('btnSalvarOcorrencia').onclick = async ()=>{
         const texto = document.getElementById('txtOcorrencia').value.trim();
         if(!texto) return;
@@ -292,6 +372,8 @@ function renderAulas(){
       };
     };
   });
+
+  // Consumir observação
   document.querySelectorAll('[data-consumir]').forEach(btn=>{
     btn.onclick = async ()=>{
       await api.consumirObservacao(btn.dataset.consumir);
@@ -300,7 +382,7 @@ function renderAulas(){
   });
 }
 
-// chips
+/*** Chips ***/
 document.querySelectorAll('[data-dia]').forEach(ch=>{
   ch.onclick = async ()=>{
     const v = ch.dataset.dia;
@@ -313,81 +395,146 @@ document.querySelectorAll('[data-dia]').forEach(ch=>{
       target = mon;
     }
     DATA_ATUAL = toYMD(target);
+
     document.querySelectorAll('.chip').forEach(c=>c.classList.remove('primary'));
     ch.classList.add('primary');
+
+    document.getElementById('inputData').value = DATA_ATUAL;
     await carregarAulas();
   };
 });
 
-/*** Planejamento ***/
+// Selecionar data específica
+const inputData = document.getElementById('inputData');
+inputData.value = DATA_ATUAL;
+inputData.addEventListener('change', async ()=>{
+  const v = inputData.value;
+  if(!v) return;
+  DATA_ATUAL = v;
+
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('primary'));
+  const hoje = toYMD(new Date());
+  if(v === hoje){
+    document.querySelector('.chip[data-dia="hoje"]')?.classList.add('primary');
+  }
+  await carregarAulas();
+});
+
+/*** Planejamento - navegação de semanas (CORRIGIDO) ***/
 const lblSemana = document.getElementById('lblSemana');
-document.getElementById('btnPrev').onclick = ()=>{ const d=new Date(SEMANA_ATUAL); d.setDate(d.getDate()-7); SEMANA_ATUAL=toYMD(d); renderPlanejamento(); };
-document.getElementById('btnNext').onclick = ()=>{ const d=new Date(SEMANA_ATUAL); d.setDate(d.getDate()+7); SEMANA_ATUAL=toYMD(d); renderPlanejamento(); };
+
+document.getElementById('btnPrev').onclick = ()=>{
+  const base = parseYMDLocal(SEMANA_ATUAL) || new Date();
+  base.setDate(base.getDate()-7);
+  SEMANA_ATUAL = toYMD(mondayOf(base));
+  renderPlanejamento();
+};
+
+document.getElementById('btnNext').onclick = ()=>{
+  const base = parseYMDLocal(SEMANA_ATUAL) || new Date();
+  base.setDate(base.getDate()+7);
+  SEMANA_ATUAL = toYMD(mondayOf(base));
+  renderPlanejamento();
+};
 
 async function renderPlanejamento(){
-  SEMANA_ATUAL = toYMD(mondayOf(new Date(SEMANA_ATUAL)));
+  const base = parseYMDLocal(SEMANA_ATUAL) || new Date();
+  SEMANA_ATUAL = toYMD(mondayOf(base));
   lblSemana.textContent = `Semana do dia ${fmtBR(SEMANA_ATUAL)}`;
+
   const resp = await api.getPlanejamento(SEMANA_ATUAL);
   PLANO = resp.aulas || [];
 
   const grid = document.getElementById('gridPlano');
   grid.innerHTML = '';
+
   for(let d=1; d<=5; d++){
     const bloco = document.createElement('div');
     bloco.className = 'day-block';
+
     const header = document.createElement('div');
     header.className = 'row';
-    header.innerHTML = `<div class="day-title">${diaLabel(d)}</div>
-                        <button class="btn light" data-add="${d}">Adicionar aula</button>`;
+    header.innerHTML = `<div class="day-title">${diaLabel(d)}</div>`;
     bloco.appendChild(header);
 
+    // Sempre renderiza 6 aulas por dia:
     const list = document.createElement('div');
-    list.style.display='flex'; list.style.flexDirection='column'; list.style.gap='10px';
+    list.style.display='flex';
+    list.style.flexDirection='column';
+    list.style.gap='10px';
 
-    const aulasDia = PLANO.filter(a => Number(a.dia_semana)===d);
-    if(!aulasDia.length){
-      const empty = document.createElement('div');
-      empty.className='muted'; empty.textContent='Sem aulas planejadas.';
-      list.appendChild(empty);
-    }else{
-      aulasDia.forEach(a=>{
+    TIME_SLOTS.forEach(slot=>{
+      const existente = PLANO.find(a =>
+        Number(a.dia_semana)===d &&
+        String(a.inicio)===slot.inicio &&
+        String(a.fim)===slot.fim
+      );
+
+      if(!existente){
         const card = document.createElement('article');
-        card.className='card';
+        card.className = 'card';
         card.innerHTML = `
           <div class="row">
-            <div style="font-weight:600">${a.turma_id}</div>
-            <div class="meta">${a.inicio}–${a.fim}</div>
+            <span class="slot-pill">${slot.n}ª aula • ${slot.inicio}–${slot.fim}</span>
+            <span class="meta">Vazio</span>
           </div>
-          <div class="meta">Sala: ${a.sala_id || '-'}</div>
-          <div class="meta" style="color:#334155;">${a.descricao_planejada || '—'}</div>
           <div class="row">
-            <button class="btn outline" data-edit="${a.pl_id}">Editar</button>
-            <button class="btn" data-del="${a.pl_id}" style="background:#ef4444">Excluir</button>
+            <button class="btn" data-plan-slot="${d}|${slot.n}">Planejar este horário</button>
           </div>
         `;
         list.appendChild(card);
-      });
-    }
+      } else {
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="row">
+            <span class="slot-pill">${slot.n}ª aula • ${existente.inicio}–${existente.fim}</span>
+            <div class="meta"><b>${existente.turma_id}</b></div>
+          </div>
+          <div class="meta">Sala: ${existente.sala_id || '-'}</div>
+          <div class="meta" style="color:#334155;">${existente.descricao_planejada || '—'}</div>
+          <div class="row">
+            <button class="btn outline" data-edit="${existente.pl_id}">Editar</button>
+            <button class="btn" data-del="${existente.pl_id}" style="background:#ef4444">Excluir</button>
+          </div>
+        `;
+        list.appendChild(card);
+      }
+    });
+
     bloco.appendChild(list);
     grid.appendChild(bloco);
   }
 
-  // Adicionar aula
-  document.querySelectorAll('[data-add]').forEach(btn=>{
+  // Planejar slot vazio
+  document.querySelectorAll('[data-plan-slot]').forEach(btn=>{
     btn.onclick = ()=>{
+      const [dia, n] = btn.dataset.planSlot.split('|').map(Number);
+      const slot = TIME_SLOTS.find(s=>s.n===n);
       openPlanoDialog({
-        pl_id:'', semana_inicio: SEMANA_ATUAL, dia_semana: btn.dataset.add,
-        turma_id:'', sala_id:'', inicio:'', fim:'', descricao_planejada:''
-      });
+        pl_id:'',
+        semana_inicio: SEMANA_ATUAL,
+        dia_semana: String(dia),
+        turma_id:'',
+        sala_id:'',
+        inicio: slot.inicio,
+        fim: slot.fim,
+        descricao_planejada: `${n}ª aula — `
+      }, n);
     };
   });
+
   // Editar
   document.querySelectorAll('[data-edit]').forEach(btn=>{
     btn.onclick = ()=>{
       const a = PLANO.find(x=> String(x.pl_id)===String(btn.dataset.edit));
-      if(a) openPlanoDialog(a);
+      if(a){
+        const slotMatch = TIME_SLOTS.find(s=> s.inicio===String(a.inicio) && s.fim===String(a.fim));
+        openPlanoDialog(a, slotMatch ? slotMatch.n : null);
+      }
     };
   });
+
   // Excluir
   document.querySelectorAll('[data-del]').forEach(btn=>{
     btn.onclick = async ()=>{
@@ -398,16 +545,46 @@ async function renderPlanejamento(){
   });
 }
 
-function openPlanoDialog(a){
+function openPlanoDialog(a, slotN=null){
   document.getElementById('dlgPlanoTitle').textContent = a.pl_id ? 'Editar aula' : 'Adicionar aula';
-  ['pl_id','semana_inicio','dia_semana','turma_id','sala_id','inicio','fim','descricao_planejada']
-    .forEach(id => document.getElementById(id).value = a[id] || '');
+
+  document.getElementById('pl_id').value = a.pl_id || '';
+  document.getElementById('semana_inicio').value = a.semana_inicio || SEMANA_ATUAL;
+  document.getElementById('dia_semana').value = a.dia_semana || '1';
+  document.getElementById('turma_id').value = a.turma_id || '';
+  document.getElementById('sala_id').value = a.sala_id || '';
+  document.getElementById('inicio').value = a.inicio || '';
+  document.getElementById('fim').value = a.fim || '';
+  document.getElementById('descricao_planejada').value = a.descricao_planejada || '';
+
+  const slotSelect = document.getElementById('slot_padrao');
+  slotSelect.value = slotN ? String(slotN) : '';
+
+  // se selecionar aula padrão, preenche horários automaticamente
+  slotSelect.onchange = ()=>{
+    const n = Number(slotSelect.value);
+    if(!n) return;
+    const slot = TIME_SLOTS.find(s=>s.n===n);
+    if(slot){
+      document.getElementById('inicio').value = slot.inicio;
+      document.getElementById('fim').value = slot.fim;
+    }
+  };
 
   document.getElementById('dlgPlano').showModal();
+
   document.getElementById('btnSalvarPlano').onclick = async ()=>{
+    const pl_id = document.getElementById('pl_id').value || undefined;
+
+    // CORRIGE: sempre força semana_inicio para a segunda-feira da semana selecionada
+    const semanaInput = document.getElementById('semana_inicio').value;
+    const dt = parseYMDLocal(semanaInput);
+    if(!dt){ alert('Data da semana inválida.'); return; }
+    const monday = toYMD(mondayOf(dt));
+
     const payload = {
-      pl_id: document.getElementById('pl_id').value || undefined,
-      semana_inicio: document.getElementById('semana_inicio').value,
+      pl_id,
+      semana_inicio: monday,
       dia_semana: document.getElementById('dia_semana').value,
       turma_id: document.getElementById('turma_id').value.trim(),
       sala_id: document.getElementById('sala_id').value.trim(),
@@ -415,13 +592,10 @@ function openPlanoDialog(a){
       fim: document.getElementById('fim').value,
       descricao_planejada: document.getElementById('descricao_planejada').value.trim()
     };
-    // validação simples
+
     if(!payload.semana_inicio || !payload.dia_semana || !payload.turma_id || !payload.inicio || !payload.fim){
       alert('Preencha os campos obrigatórios.'); return;
     }
-    // garante segunda
-    const mon = toYMD(mondayOf(new Date(payload.semana_inicio)));
-    payload.semana_inicio = mon;
 
     await api.upsertPlanejamento(payload);
     document.getElementById('dlgPlano').close();
