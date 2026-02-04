@@ -13,7 +13,7 @@
   html,body{height:100%;}
   body{
     margin:0;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Helvetica Neue', Arial, sans-serif;
     background: linear-gradient(180deg, var(--g1), var(--g2));
     color: var(--txt);
   }
@@ -68,7 +68,7 @@
   textarea, input, select{
     width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:10px; padding:10px; font-size:14px;
   }
-  label{font-size:13px; color:#e7fff3; font-weight:600; display:block;}
+  label{font-size:13px; color:#334155; font-weight:600; display:block; margin-bottom: 4px;}
   .empty{color:#fff; opacity:.95;}
   .slot-pill{
     display:inline-flex; font-size:12px; font-weight:700;
@@ -77,6 +77,8 @@
   .loading{
     color:#fff; opacity:.95; padding:8px 0;
   }
+  /* Ajuste labels dialog escuros */
+  #dlgPlano label, #dlgOcorrencia label { color: #334155; }
 </style>
 </head>
 <body>
@@ -91,7 +93,6 @@
 </header>
 
 <main>
-  <!-- Aulas de Hoje -->
   <section id="viewHoje">
     <div class="chips" id="chipsDias">
       <button class="chip" data-dia="ontem">Ontem</button>
@@ -99,15 +100,14 @@
       <button class="chip" data-dia="amanha">Amanhã</button>
 
       <div style="display:flex; align-items:center; gap:8px; margin-left:8px;">
-        <label for="inputData" class="meta">Selecionar dia:</label>
+        <label for="inputData" class="meta" style="color:#e7fff3; margin:0;">Outro dia:</label>
         <input id="inputData" type="date" class="date-input">
       </div>
     </div>
     <div id="statusHoje" class="loading" style="display:none;">Carregando…</div>
-    <div id="listaAulas" style="display:flex; flex-direction:column; gap:16px;"></div>
+    <div id="listaAulas" style="display:flex; flex-direction:column; gap:16px; margin-top:16px;"></div>
   </section>
 
-  <!-- Planejamento da Semana -->
   <section id="viewPlano" style="display:none;">
     <div class="row">
       <button id="btnPrev" class="btn light">◀︎</button>
@@ -119,12 +119,11 @@
   </section>
 </main>
 
-<!-- Dialog: Registrar Ocorrência -->
 <dialog id="dlgOcorrencia">
   <div class="dlg-header">Registrar o que aconteceu</div>
   <div class="dlg-body">
     <div id="infoAula" class="meta" style="margin-bottom:8px;"></div>
-    <label for="txtOcorrencia" style="color:#334155;">Observação</label>
+    <label for="txtOcorrencia">Observação</label>
     <textarea id="txtOcorrencia" rows="6" placeholder="Descreva o ocorrido..." required></textarea>
   </div>
   <div class="dlg-foot">
@@ -133,10 +132,9 @@
   </div>
 </dialog>
 
-<!-- Dialog: Planejar Aula (criar/editar) -->
 <dialog id="dlgPlano">
   <div class="dlg-header" id="dlgPlanoTitle">Planejar aula</div>
-  <div class="dlg-body" style="display:grid; gap:12px;">
+  <div class="dlg-body" style="display:grid; gap:12px; overflow-y:auto; max-height:70vh;">
     <input type="hidden" id="pl_id">
 
     <div>
@@ -158,7 +156,7 @@
     <div>
       <label>Aula padrão (6 aulas/dia)</label>
       <select id="slot_padrao">
-        <option value="">(não usar)</option>
+        <option value="">(Personalizado)</option>
         <option value="1">1ª aula (07:15–08:30)</option>
         <option value="2">2ª aula (08:30–09:15)</option>
         <option value="3">3ª aula (09:15–10:00)</option>
@@ -202,10 +200,10 @@
 </dialog>
 
 <script>
-/*** CONFIG: COLE A URL DO SEU WEB APP AQUI ***/
-const API_URL = 'https://script.google.com/macros/s/AKfycbwY4tYepuc9jVhJS4iIVs7M2-4z2d637dJNh9Y-XfyMfpocDt4x7UQb_Q4jM8LYkOizyA/exec';
+// A URL agora é injetada automaticamente pelo Script
+const API_URL = '<?= ScriptApp.getService().getUrl() ?>';
 
-/*** Slots padrão (12 aulas/dia) ***/
+/*** Slots padrão ***/
 const TIME_SLOTS = [
   {n:1, inicio:'07:15', fim:'08:30'},
   {n:2, inicio:'08:30', fim:'09:15'},
@@ -309,11 +307,13 @@ tabPlano.onclick = ()=>setTab('plano');
 /*** UI status ***/
 function setStatus(id, show, text='Carregando…'){
   const el = document.getElementById(id);
-  el.textContent = text;
-  el.style.display = show ? '' : 'none';
+  if(el){
+    el.textContent = text;
+    el.style.display = show ? '' : 'none';
+  }
 }
 
-/*** Aulas de hoje (otimizado com Promise.all) ***/
+/*** Aulas de hoje ***/
 async function carregarAulas(){
   setStatus('statusHoje', true, 'Carregando…');
   try{
@@ -338,7 +338,6 @@ function renderAulas(){
     return;
   }
 
-  // index de observações por turma (rápido)
   const obsByTurma = new Map();
   for(const o of OBS){
     const k = String(o.turma_id);
@@ -350,7 +349,7 @@ function renderAulas(){
     const pend = obsByTurma.get(String(a.turma_id)) || [];
     const pendHtml = pend.map(o=>`
       <div class="obs">
-        <div class="txt">${o.texto}</div>
+        <div class="txt">⚠️ ${o.texto} (de ${fmtBR(o.data_aula_origem)})</div>
         <button class="btn link" data-consumir="${o.obs_id}">Marcar como visto</button>
       </div>`).join('');
 
@@ -363,8 +362,8 @@ function renderAulas(){
       </div>
       <div class="meta">Sala: <b>${a.sala_id||'-'}</b> • ${a.descricao_infra||'Sem infra'}</div>
       ${a.auxiliar_inclusao ? `<span class="badge aux">Auxiliar: ${a.auxiliar_inclusao}</span>` : ''}
-      <div class="meta" style="color:#334155; font-size:14px;">
-        <div style="font-weight:600; margin-bottom:4px;">Planejado:</div>
+      <div class="meta" style="color:#334155; font-size:14px; background:#f1f5f9; padding:8px; border-radius:8px;">
+        <div style="font-weight:600; margin-bottom:4px; font-size:12px; color:#64748b;">PLANEJADO:</div>
         <div>${a.descricao_planejada || '—'}</div>
       </div>
       ${pendHtml}
@@ -373,11 +372,10 @@ function renderAulas(){
     wrap.appendChild(card);
   });
 
-  // Registrar ocorrência
   document.querySelectorAll('[data-ocorrencia]').forEach(btn=>{
     btn.onclick = ()=>{
       const a = AULAS[Number(btn.dataset.ocorrencia)];
-      document.getElementById('infoAula').textContent =
+      document.getElementById('infoAula').textContent = 
         `${a.nome_turma} • ${a.inicio}–${a.fim} • ${fmtBR(DATA_ATUAL)}`;
       document.getElementById('txtOcorrencia').value = '';
       document.getElementById('dlgOcorrencia').showModal();
@@ -392,7 +390,6 @@ function renderAulas(){
     };
   });
 
-  // Consumir observação
   document.querySelectorAll('[data-consumir]').forEach(btn=>{
     btn.onclick = async ()=>{
       await api.consumirObservacao(btn.dataset.consumir);
@@ -401,7 +398,7 @@ function renderAulas(){
   });
 }
 
-/*** Chips: apenas Ontem/Hoje/Amanhã (removidos Seg..Sex) ***/
+/*** Chips ***/
 document.querySelectorAll('[data-dia]').forEach(ch=>{
   ch.onclick = async ()=>{
     const v = ch.dataset.dia;
@@ -418,7 +415,6 @@ document.querySelectorAll('[data-dia]').forEach(ch=>{
   };
 });
 
-// Selecionar data específica
 const inputData = document.getElementById('inputData');
 inputData.value = DATA_ATUAL;
 inputData.addEventListener('change', async ()=>{
@@ -434,7 +430,7 @@ inputData.addEventListener('change', async ()=>{
   await carregarAulas();
 });
 
-/*** Planejamento - navegação de semanas ***/
+/*** Planejamento ***/
 const lblSemana = document.getElementById('lblSemana');
 
 document.getElementById('btnPrev').onclick = ()=>{
@@ -456,12 +452,11 @@ async function renderPlanejamento(){
   try{
     const base = parseYMDLocal(SEMANA_ATUAL) || new Date();
     SEMANA_ATUAL = toYMD(mondayOf(base));
-    lblSemana.textContent = `Semana do dia ${fmtBR(SEMANA_ATUAL)}`;
+    lblSemana.textContent = `Semana ${fmtBR(SEMANA_ATUAL)}`;
 
     const resp = await api.getPlanejamento(SEMANA_ATUAL);
     PLANO = resp.aulas || [];
 
-    // Mapa rápido para encontrar (dia|inicio|fim) => aula
     const planMap = new Map();
     for(const a of PLANO){
       const key = `${Number(a.dia_semana)}|${String(a.inicio)}|${String(a.fim)}`;
@@ -474,16 +469,10 @@ async function renderPlanejamento(){
     for(let d=1; d<=5; d++){
       const bloco = document.createElement('div');
       bloco.className = 'day-block';
-
-      const header = document.createElement('div');
-      header.className = 'row';
-      header.innerHTML = `<div class="day-title">${diaLabel(d)}</div>`;
-      bloco.appendChild(header);
+      bloco.innerHTML = `<div class="row"><div class="day-title">${diaLabel(d)}</div></div>`;
 
       const list = document.createElement('div');
-      list.style.display='flex';
-      list.style.flexDirection='column';
-      list.style.gap='10px';
+      list.style.display='flex'; list.style.flexDirection='column'; list.style.gap='10px';
 
       TIME_SLOTS.forEach(slot=>{
         const key = `${d}|${slot.inicio}|${slot.fim}`;
@@ -494,11 +483,11 @@ async function renderPlanejamento(){
           card.className = 'card';
           card.innerHTML = `
             <div class="row">
-              <span class="slot-pill">${slot.n}ª aula • ${slot.inicio}–${slot.fim}</span>
-              <span class="meta">Vazio</span>
+              <span class="slot-pill">${slot.n}ª aula</span>
+              <span class="meta">${slot.inicio}–${slot.fim}</span>
             </div>
             <div class="row">
-              <button class="btn" data-plan-slot="${d}|${slot.n}">Planejar este horário</button>
+              <button class="btn light" style="background:#f1f5f9; color:#0f172a;" data-plan-slot="${d}|${slot.n}">+ Planejar</button>
             </div>
           `;
           list.appendChild(card);
@@ -507,25 +496,24 @@ async function renderPlanejamento(){
           card.className = 'card';
           card.innerHTML = `
             <div class="row">
-              <span class="slot-pill">${slot.n}ª aula • ${existente.inicio}–${existente.fim}</span>
+              <span class="slot-pill" style="background:#dcfce7; color:#14532d;">${slot.n}ª aula</span>
               <div class="meta"><b>${existente.turma_id}</b></div>
             </div>
             <div class="meta">Sala: ${existente.sala_id || '-'}</div>
             <div class="meta" style="color:#334155;">${existente.descricao_planejada || '—'}</div>
             <div class="row">
               <button class="btn outline" data-edit="${existente.pl_id}">Editar</button>
-              <button class="btn" data-del="${existente.pl_id}" style="background:#ef4444">Excluir</button>
+              <button class="btn" data-del="${existente.pl_id}" style="background:#fee2e2; color:#b91c1c;">Excluir</button>
             </div>
           `;
           list.appendChild(card);
         }
       });
-
       bloco.appendChild(list);
       grid.appendChild(bloco);
     }
 
-    // Planejar slot vazio
+    // Handlers
     document.querySelectorAll('[data-plan-slot]').forEach(btn=>{
       btn.onclick = ()=>{
         const [dia, n] = btn.dataset.planSlot.split('|').map(Number);
@@ -543,7 +531,6 @@ async function renderPlanejamento(){
       };
     });
 
-    // Editar
     document.querySelectorAll('[data-edit]').forEach(btn=>{
       btn.onclick = ()=>{
         const a = PLANO.find(x=> String(x.pl_id)===String(btn.dataset.edit));
@@ -554,7 +541,6 @@ async function renderPlanejamento(){
       };
     });
 
-    // Excluir
     document.querySelectorAll('[data-del]').forEach(btn=>{
       btn.onclick = async ()=>{
         if(!confirm('Excluir este planejamento?')) return;
@@ -570,7 +556,6 @@ async function renderPlanejamento(){
 
 function openPlanoDialog(a, slotN=null){
   document.getElementById('dlgPlanoTitle').textContent = a.pl_id ? 'Editar aula' : 'Adicionar aula';
-
   document.getElementById('pl_id').value = a.pl_id || '';
   document.getElementById('semana_inicio').value = a.semana_inicio || SEMANA_ATUAL;
   document.getElementById('dia_semana').value = a.dia_semana || '1';
@@ -597,8 +582,6 @@ function openPlanoDialog(a, slotN=null){
 
   document.getElementById('btnSalvarPlano').onclick = async ()=>{
     const pl_id = document.getElementById('pl_id').value || undefined;
-
-    // força semana como segunda-feira
     const semanaInput = document.getElementById('semana_inicio').value;
     const dt = parseYMDLocal(semanaInput);
     if(!dt){ alert('Data da semana inválida.'); return; }
@@ -622,9 +605,6 @@ function openPlanoDialog(a, slotN=null){
     await api.upsertPlanejamento(payload);
     document.getElementById('dlgPlano').close();
     await renderPlanejamento();
-
-    // opcional: se você estiver olhando uma data da mesma semana, atualizar "Aulas de hoje"
-    // (mantém tudo sincronizado e parece "instantâneo")
     await carregarAulas();
   };
 }
