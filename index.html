@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cronograma de Aulas</title>
+<meta name="theme-color" content="#059669">
+<style>
+  :root{
+    --g1:#047857; --g2:#059669; --g3:#10b981;
+    --txt:#0f172a; --muted:#475569; --white:#ffffff;
+  }
+  html,body{height:100%;}
+  body{
+    margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
+    background: linear-gradient(180deg, var(--g1), var(--g2));
+    color: var(--txt);
+  }
+  header{
+    position: sticky; top:0; z-index:10;
+    background: linear-gradient(180deg, #065f46, #047857);
+    color: var(--white);
+    box-shadow: 0 2px 10px rgba(0,0,0,.2);
+  }
+  .container{max-width:720px; margin:0 auto; padding:16px;}
+  h1{margin:0; font-size:22px; font-weight:600;}
+  nav{margin-top:12px; display:flex; gap:8px;}
+  .tab{background:rgba(255,255,255,.12); color:#fff; border:none; padding:8px 12px; border-radius:999px; cursor:pointer;}
+  .tab.active{background:rgba(255,255,255,.25); font-weight:600;}
+  main{padding:24px 16px 48px; max-width:720px; margin:0 auto;}
+  .chips{display:flex; gap:8px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none;}
+  .chips::-webkit-scrollbar{display:none;}
+  .chip{white-space:nowrap; background:rgba(255,255,255,.2); color:#fff; padding:8px 12px; border-radius:999px; border:none; cursor:pointer;}
+  .chip.primary{background:#fff; color:#065f46; font-weight:600;}
+  .card{
+    background:#fff; border-radius:14px; box-shadow: 0 6px 18px rgba(0,0,0,.08);
+    padding:16px; display:flex; flex-direction:column; gap:10px;
+  }
+  .row{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .meta{color:var(--muted); font-size:13px;}
+  .badge{display:inline-flex; align-items:center; gap:6px; font-size:12px; border-radius:999px; padding:4px 8px;}
+  .badge.aux{background:#d1fae5; color:#065f46;}
+  .btn{
+    border:none; border-radius:10px; padding:10px 12px; cursor:pointer;
+    background:#059669; color:#fff; font-weight:600;
+  }
+  .btn:hover{background:#047857;}
+  .btn.light{background:rgba(255,255,255,.2); color:#fff; font-weight:500;}
+  .btn.light:hover{background:rgba(255,255,255,.3);}
+  .btn.outline{background:#fff; color:#0f172a; border:1px solid #e2e8f0;}
+  .box{background:rgba(255,255,255,.2); color:#fff; border-radius:12px; padding:10px 12px;}
+  .day-block{background:rgba(255,255,255,.18); border-radius:12px; padding:10px;}
+  .day-title{color:#fff; font-weight:600; margin:4px 0 8px;}
+  .obs{background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:8px; display:flex; justify-content:space-between; gap:8px;}
+  .obs .txt{font-size:13px; color:#065f46;}
+  .btn.link{background:none; color:#065f46; border:none; padding:0; font-size:12px; text-decoration:underline; cursor:pointer;}
+  .muted{color:#e5e7eb;}
+  dialog{border:none; border-radius:14px; padding:0; width:min(96vw,560px);}
+  dialog::backdrop{background:rgba(0,0,0,.45);}
+  .dlg-header{background:#059669; color:#fff; padding:12px 16px; font-weight:600;}
+  .dlg-body{padding:14px 16px;}
+  .dlg-foot{padding:12px 16px; display:flex; justify-content:flex-end; gap:8px;}
+  textarea, input, select{
+    width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:10px; padding:10px; font-size:14px;
+  }
+  label{font-size:13px; color:#334155; font-weight:600; display:block; margin-bottom:6px;}
+  .empty{color:#fff; opacity:.95;}
+</style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>Cronograma de Aulas</h1>
+      <nav>
+        <button id="tabHoje" class="tab active">Aulas de hoje</button>
+        <button id="tabPlano" class="tab">Planejamento da semana</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Aulas de Hoje -->
+    <section id="viewHoje" class="view">
+      <div class="chips" id="chipsDias">
+        <button class="chip" data-dia="ontem">Ontem</button>
+        <button class="chip primary" data-dia="hoje">Hoje</button>
+        <button class="chip" data-dia="amanha">Amanhã</button>
+        <button class="chip" data-dia="1">Seg</button>
+        <button class="chip" data-dia="2">Ter</button>
+        <button class="chip" data-dia="3">Qua</button>
+        <button class="chip" data-dia="4">Qui</button>
+        <button class="chip" data-dia="5">Sex</button>
+      </div>
+      <div id="listaAulas" class="list" style="display:flex; flex-direction:column; gap:16px;"></div>
+    </section>
+
+    <!-- Planejamento da Semana -->
+    <section id="viewPlano" class="view" style="display:none;">
+      <div class="row">
+        <button id="btnPrev" class="btn light">◀︎</button>
+        <div id="lblSemana" class="box">Semana do dia --/--/----</div>
+        <button id="btnNext" class="btn light">▶︎</button>
+      </div>
+      <div id="gridPlano" class="list" style="margin-top:12px; display:flex; flex-direction:column; gap:12px;"></div>
+    </section>
+  </main>
+
+  <!-- Dialog: Registrar Ocorrência -->
+  <dialog id="dlgOcorrencia">
+    <div class="dlg-header">Registrar o que aconteceu</div>
+    <div class="dlg-body">
+      <div id="infoAula" class="meta" style="margin-bottom:8px;"></div>
+      <label for="txtOcorrencia">Observação</label>
+      <textarea id="txtOcorrencia" rows="6" placeholder="Descreva o ocorrido..." required></textarea>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn outline" value="cancel">Cancelar</button>
+      <button id="btnSalvarOcorrencia" class="btn" value="default">Salvar</button>
+    </div>
+  </dialog>
+
+  <!-- Dialog: Planejar Aula (criar/editar) -->
+  <dialog id="dlgPlano">
+    <div class="dlg-header" id="dlgPlanoTitle">Planejar aula</div>
+    <div class="dlg-body" style="display:grid; gap:12px;">
+      <input type="hidden" id="pl_id">
+      <div>
+        <label>Semana (2ª feira)</label>
+        <input id="semana_inicio" type="date" required>
+      </div>
+      <div>
+        <label>Dia da semana</label>
+        <select id="dia_semana" required>
+          <option value="1">Segunda</option>
+          <option value="2">Terça</option>
+          <option value="3">Quarta</option>
+          <option value="4">Quinta</option>
+          <option value="5">Sexta</option>
+        </select>
+      </div>
+      <div>
+        <label>Turma ID</label>
+        <input id="turma_id" placeholder="Ex.: T1A" required>
+      </div>
+      <div>
+        <label>Sala ID</label>
+        <input id="sala_id" placeholder="Ex.: S101">
+      </div>
+      <div class="row" style="gap:10px;">
+        <div style="flex:1">
+          <label>Início</label>
+          <input id="inicio" type="time" required>
+        </div>
+        <div style="flex:1">
+          <label>Fim</label>
+          <input id="fim" type="time" required>
+        </div>
+      </div>
+      <div>
+        <label>Descrição planejada</label>
+        <textarea id="descricao_planejada" rows="4" placeholder="Conteúdo/atividade planejada..."></textarea>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn outline" value="cancel">Cancelar</button>
+      <button id="btnSalvarPlano" class="btn" value="default">Salvar</button>
+    </div>
+  </dialog>
+
+<script>
+/*** CONFIG: COLE A URL DO SEU WEB APP AQUI ***/
+const API_URL = 'https://script.google.com/macros/s/AKfycbzuMaABf9OyjkXe4bg28Ph0X4t7u-QPESklKtrQ1GbLJnITctmmB87Q-rugHKUqEstb/exec';
+
+/*** Utilitários de data ***/
+const toYMD = (d)=>{ const z=new Date(d); z.setHours(0,0,0,0); const m=String(z.getMonth()+1).padStart(2,'0'); const day=String(z.getDate()).padStart(2,'0'); return `${z.getFullYear()}-${m}-${day}`; };
+const mondayOf = (d)=>{ const z=new Date(d); const dow=z.getDay(); const diff=(dow===0?-6:1-dow); z.setDate(z.getDate()+diff); z.setHours(0,0,0,0); return z; };
+const fmtBR = (ymd)=>{ if(!ymd) return '--/--/----'; const [y,m,d]=ymd.split('-'); return `${d}/${m}/${y}`; };
+const diaLabel = (n)=>['','Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'][Number(n)||0];
+
+/*** API ***/
+const api = {
+  async getAulas(dataYMD){
+    const r = await fetch(`${API_URL}?action=aulasHoje&data=${encodeURIComponent(dataYMD)}`);
+    return r.json();
+  },
+  async getObservacoes(dataYMD){
+    const r = await fetch(`${API_URL}?action=observacoes&data=${encodeURIComponent(dataYMD)}`);
+    return r.json();
+  },
+  async postForm(params){
+    const r = await fetch(API_URL, { method:'POST', body: new URLSearchParams(params) });
+    return r.json();
+  },
+  async getPlanejamento(semanaYMD){
+    const r = await fetch(`${API_URL}?action=planejamento&semana=${encodeURIComponent(semanaYMD)}`);
+    return r.json();
+  },
+  registrarOcorrencia(payload){
+    return this.postForm({action:'registrarOcorrencia', ...payload});
+  },
+  consumirObservacao(obs_id){
+    return this.postForm({action:'consumirObservacao', obs_id});
+  },
+  upsertPlanejamento(obj){
+    return this.postForm({action:'upsertPlanejamento', json: JSON.stringify(obj)});
+  },
+  deletarPlanejamento(pl_id){
+    return this.postForm({action:'deletarPlanejamento', pl_id});
+  }
+};
+
+/*** Estado ***/
+let DATA_ATUAL = toYMD(new Date());
+let SEMANA_ATUAL = toYMD(mondayOf(new Date()));
+let AULAS = [];
+let OBS = [];
+let PLANO = [];
+
+/*** Tabs ***/
+const tabHoje = document.getElementById('tabHoje');
+const tabPlano = document.getElementById('tabPlano');
+const viewHoje = document.getElementById('viewHoje');
+const viewPlano = document.getElementById('viewPlano');
+
+function setTab(tab){
+  if(tab==='hoje'){
+    tabHoje.classList.add('active'); tabPlano.classList.remove('active');
+    viewHoje.style.display = ''; viewPlano.style.display = 'none';
+  }else{
+    tabPlano.classList.add('active'); tabHoje.classList.remove('active');
+    viewPlano.style.display = ''; viewHoje.style.display = 'none';
+    renderPlanejamento();
+  }
+}
+tabHoje.onclick = ()=>setTab('hoje');
+tabPlano.onclick = ()=>setTab('plano');
+
+/*** Aulas de hoje ***/
+async function carregarAulas(){
+  const resp = await api.getAulas(DATA_ATUAL);
+  const obs  = await api.getObservacoes(DATA_ATUAL);
+  AULAS = resp.aulas || [];
+  OBS   = obs.observacoes || [];
+  renderAulas();
+}
+function renderAulas(){
+  const wrap = document.getElementById('listaAulas');
+  wrap.innerHTML = '';
+  if(!AULAS.length){
+    wrap.innerHTML = `<div class="empty">Sem aulas para ${fmtBR(DATA_ATUAL)}.</div>`;
+    return;
+  }
+  AULAS.forEach((a,idx)=>{
+    const pend = OBS.filter(o=> String(o.turma_id)===String(a.turma_id));
+    const pendHtml = pend.map(o=>`
+      <div class="obs">
+        <div class="txt">${o.texto}</div>
+        <button class="btn link" data-consumir="${o.obs_id}">Marcar como visto</button>
+      </div>`).join('');
+    const card = document.createElement('article');
+    card.className='card';
+    card.innerHTML = `
+      <div class="row">
+        <div style="font-weight:600">${a.nome_turma}</div>
+        <div class="meta">${a.inicio}–${a.fim}</div>
+      </div>
+      <div class="meta">Sala: <b>${a.sala_id||'-'}</b> • ${a.descricao_infra||'Sem infra'}</div>
+      ${a.auxiliar_inclusao ? `<span class="badge aux">Auxiliar: ${a.auxiliar_inclusao}</span>` : ''}
+      <div class="meta" style="color:#334155; font-size:14px;">
+        <div style="font-weight:600; margin-bottom:4px;">Planejado:</div>
+        <div>${a.descricao_planejada || '—'}</div>
+      </div>
+      ${pendHtml}
+      <div><button class="btn" data-ocorrencia="${idx}">Registrar o que aconteceu</button></div>
+    `;
+    wrap.appendChild(card);
+  });
+  // Ações
+  document.querySelectorAll('[data-ocorrencia]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const a = AULAS[Number(btn.dataset.ocorrencia)];
+      document.getElementById('infoAula').textContent =
+        `${a.nome_turma} • ${a.inicio}–${a.fim} • ${fmtBR(DATA_ATUAL)}`;
+      document.getElementById('txtOcorrencia').value = '';
+      document.getElementById('dlgOcorrencia').showModal();
+      document.getElementById('btnSalvarOcorrencia').onclick = async ()=>{
+        const texto = document.getElementById('txtOcorrencia').value.trim();
+        if(!texto) return;
+        await api.registrarOcorrencia({ turma_id: a.turma_id, data_aula: DATA_ATUAL, texto });
+        document.getElementById('dlgOcorrencia').close();
+        await carregarAulas();
+      };
+    };
+  });
+  document.querySelectorAll('[data-consumir]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      await api.consumirObservacao(btn.dataset.consumir);
+      await carregarAulas();
+    };
+  });
+}
+
+// chips
+document.querySelectorAll('[data-dia]').forEach(ch=>{
+  ch.onclick = async ()=>{
+    const v = ch.dataset.dia;
+    let target = new Date();
+    if(v==='ontem') target.setDate(target.getDate()-1);
+    else if(v==='amanha') target.setDate(target.getDate()+1);
+    else if(/^[1-5]$/.test(v)){
+      const mon = mondayOf(new Date());
+      mon.setDate(mon.getDate() + (Number(v)-1));
+      target = mon;
+    }
+    DATA_ATUAL = toYMD(target);
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('primary'));
+    ch.classList.add('primary');
+    await carregarAulas();
+  };
+});
+
+/*** Planejamento ***/
+const lblSemana = document.getElementById('lblSemana');
+document.getElementById('btnPrev').onclick = ()=>{ const d=new Date(SEMANA_ATUAL); d.setDate(d.getDate()-7); SEMANA_ATUAL=toYMD(d); renderPlanejamento(); };
+document.getElementById('btnNext').onclick = ()=>{ const d=new Date(SEMANA_ATUAL); d.setDate(d.getDate()+7); SEMANA_ATUAL=toYMD(d); renderPlanejamento(); };
+
+async function renderPlanejamento(){
+  SEMANA_ATUAL = toYMD(mondayOf(new Date(SEMANA_ATUAL)));
+  lblSemana.textContent = `Semana do dia ${fmtBR(SEMANA_ATUAL)}`;
+  const resp = await api.getPlanejamento(SEMANA_ATUAL);
+  PLANO = resp.aulas || [];
+
+  const grid = document.getElementById('gridPlano');
+  grid.innerHTML = '';
+  for(let d=1; d<=5; d++){
+    const bloco = document.createElement('div');
+    bloco.className = 'day-block';
+    const header = document.createElement('div');
+    header.className = 'row';
+    header.innerHTML = `<div class="day-title">${diaLabel(d)}</div>
+                        <button class="btn light" data-add="${d}">Adicionar aula</button>`;
+    bloco.appendChild(header);
+
+    const list = document.createElement('div');
+    list.style.display='flex'; list.style.flexDirection='column'; list.style.gap='10px';
+
+    const aulasDia = PLANO.filter(a => Number(a.dia_semana)===d);
+    if(!aulasDia.length){
+      const empty = document.createElement('div');
+      empty.className='muted'; empty.textContent='Sem aulas planejadas.';
+      list.appendChild(empty);
+    }else{
+      aulasDia.forEach(a=>{
+        const card = document.createElement('article');
+        card.className='card';
+        card.innerHTML = `
+          <div class="row">
+            <div style="font-weight:600">${a.turma_id}</div>
+            <div class="meta">${a.inicio}–${a.fim}</div>
+          </div>
+          <div class="meta">Sala: ${a.sala_id || '-'}</div>
+          <div class="meta" style="color:#334155;">${a.descricao_planejada || '—'}</div>
+          <div class="row">
+            <button class="btn outline" data-edit="${a.pl_id}">Editar</button>
+            <button class="btn" data-del="${a.pl_id}" style="background:#ef4444">Excluir</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+    bloco.appendChild(list);
+    grid.appendChild(bloco);
+  }
+
+  // Adicionar aula
+  document.querySelectorAll('[data-add]').forEach(btn=>{
+    btn.onclick = ()=>{
+      openPlanoDialog({
+        pl_id:'', semana_inicio: SEMANA_ATUAL, dia_semana: btn.dataset.add,
+        turma_id:'', sala_id:'', inicio:'', fim:'', descricao_planejada:''
+      });
+    };
+  });
+  // Editar
+  document.querySelectorAll('[data-edit]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const a = PLANO.find(x=> String(x.pl_id)===String(btn.dataset.edit));
+      if(a) openPlanoDialog(a);
+    };
+  });
+  // Excluir
+  document.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      if(!confirm('Excluir este planejamento?')) return;
+      await api.deletarPlanejamento(btn.dataset.del);
+      await renderPlanejamento();
+    };
+  });
+}
+
+function openPlanoDialog(a){
+  document.getElementById('dlgPlanoTitle').textContent = a.pl_id ? 'Editar aula' : 'Adicionar aula';
+  ['pl_id','semana_inicio','dia_semana','turma_id','sala_id','inicio','fim','descricao_planejada']
+    .forEach(id => document.getElementById(id).value = a[id] || '');
+
+  document.getElementById('dlgPlano').showModal();
+  document.getElementById('btnSalvarPlano').onclick = async ()=>{
+    const payload = {
+      pl_id: document.getElementById('pl_id').value || undefined,
+      semana_inicio: document.getElementById('semana_inicio').value,
+      dia_semana: document.getElementById('dia_semana').value,
+      turma_id: document.getElementById('turma_id').value.trim(),
+      sala_id: document.getElementById('sala_id').value.trim(),
+      inicio: document.getElementById('inicio').value,
+      fim: document.getElementById('fim').value,
+      descricao_planejada: document.getElementById('descricao_planejada').value.trim()
+    };
+    // validação simples
+    if(!payload.semana_inicio || !payload.dia_semana || !payload.turma_id || !payload.inicio || !payload.fim){
+      alert('Preencha os campos obrigatórios.'); return;
+    }
+    // garante segunda
+    const mon = toYMD(mondayOf(new Date(payload.semana_inicio)));
+    payload.semana_inicio = mon;
+
+    await api.upsertPlanejamento(payload);
+    document.getElementById('dlgPlano').close();
+    await renderPlanejamento();
+  };
+}
+
+/*** Inicialização ***/
+setTab('hoje');
+carregarAulas();
+</script>
+</body>
+</html>
